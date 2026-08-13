@@ -2,33 +2,43 @@ const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
+// Token Generator Helper
 const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET || 'natya_bharati_super_secret_jwt_key_2026_classical_dance', {
-    expiresIn: '7d',
-  });
+  return jwt.sign(
+    { id },
+    process.env.JWT_SECRET || 'natya_bharati_super_secret_jwt_key_2026_classical_dance',
+    { expiresIn: '7d' }
+  );
 };
 
 // @desc    Register a new user / admin
 // @route   POST /api/auth/register
-// @access  Public (or Admin only depending on role)
+// @access  Public
 const registerUser = async (req, res) => {
   try {
-    const { name, email, password, phone, role } = req.body;
+    const { username, name, email, password, phone, role } = req.body;
 
-    const userExists = await User.findOne({ email });
+    const userIdentifier = username || name || email;
+
+    // Check existing user by email or username
+    const userExists = await User.findOne({
+      $or: [{ email }, { username: userIdentifier }],
+    });
+
     if (userExists) {
-      return res.status(400).json({ success: false, message: 'User with this email already exists' });
+      return res.status(400).json({ success: false, message: 'User already exists with this email or username' });
     }
 
+    // Hash password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
     const user = await User.create({
-      name,
+      username: userIdentifier,
       email,
       password: hashedPassword,
       phone: phone || '',
-      role: role || 'student',
+      role: role || 'admin',
     });
 
     if (user) {
@@ -36,7 +46,7 @@ const registerUser = async (req, res) => {
         success: true,
         data: {
           _id: user._id,
-          name: user.name,
+          username: user.username,
           email: user.email,
           role: user.role,
           phone: user.phone,
@@ -56,14 +66,31 @@ const registerUser = async (req, res) => {
 // @access  Public
 const loginUser = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, username, password } = req.body;
 
-    const user = await User.findOne({ email });
+    const loginIdentifier = email || username;
+
+    if (!loginIdentifier || !password) {
+      return res.status(400).json({ success: false, message: 'Please provide email/username and password' });
+    }
+
+    // Find user by Email OR Username
+    const user = await User.findOne({
+      $or: [{ email: loginIdentifier }, { username: loginIdentifier }],
+    });
+
     if (!user) {
       return res.status(401).json({ success: false, message: 'Invalid email or password' });
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
+    // Handle both Hashed ($2a$) and Plaintext Passwords
+    let isMatch = false;
+    if (user.password.startsWith('$2a$') || user.password.startsWith('$2b$')) {
+      isMatch = await bcrypt.compare(password, user.password);
+    } else {
+      isMatch = user.password === password; // Plaintext support
+    }
+
     if (!isMatch) {
       return res.status(401).json({ success: false, message: 'Invalid email or password' });
     }
@@ -72,11 +99,10 @@ const loginUser = async (req, res) => {
       success: true,
       data: {
         _id: user._id,
-        name: user.name,
+        username: user.username || user.email,
         email: user.email,
         role: user.role,
-        avatar: user.avatar,
-        phone: user.phone,
+        phone: user.phone || '',
         token: generateToken(user._id),
       },
     });
@@ -90,7 +116,7 @@ const loginUser = async (req, res) => {
 // @access  Private
 const getMe = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).select('-password');
+    const user = await User.findById(req.user.id).select('-password');
     res.json({ success: true, data: user });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
