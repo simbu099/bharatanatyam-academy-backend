@@ -35,12 +35,13 @@ const seedData = async () => {
       avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=400',
     });
 
-    // 2. Seed All Courses (Including Nattuvangam & Rhythm)
+    // 2. Seed All Courses with HD Images, Fees, Duration & Slots
     await Course.insertMany([
       {
         title: 'Prarambhik (Beginner Level)',
         category: 'Prarambhik (Beginner)',
-        description: 'Introduction to basic Adavus, Talam structures, and fundamental body postures in Kalakshetra Bani.',
+        description: 'Introduction to basic Adavus, Talam structures, Hastas (hand gestures), and fundamental body postures in Kalakshetra style.',
+        image: 'https://images.unsplash.com/photo-1547153760-18fc86324498?auto=format&fit=crop&q=80&w=800',
         duration: '12 Months',
         schedule: 'Mon & Wed (07:00 AM - 08:30 AM)',
         fee: 3500,
@@ -53,7 +54,8 @@ const seedData = async () => {
       {
         title: 'Madhyama (Intermediate Level)',
         category: 'Madhyama (Intermediate)',
-        description: 'Focus on Varnam items, intricate Jathis, footwork precision, and basic Abhinaya (expression).',
+        description: 'Focus on Varnam items, intricate Jathis, footwork precision, and basic Abhinaya (expressive storytelling).',
+        image: 'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?auto=format&fit=crop&q=80&w=800',
         duration: '24 Months',
         schedule: 'Tue & Thu (05:30 PM - 07:00 PM)',
         fee: 4500,
@@ -65,10 +67,11 @@ const seedData = async () => {
       {
         title: 'Uttama (Advanced Arangetram Track)',
         category: 'Uttama (Advanced)',
-        description: 'Full Margam repertoire preparation, solo Arangetram choreography, and live orchestra alignment.',
+        description: 'Full Margam repertoire preparation, solo Arangetram choreography, stage presence, and live orchestra alignment.',
+        image: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&q=80&w=800',
         duration: '36 Months',
         schedule: 'Flexible Private Sessions',
-        fee: 6000,
+        fee: 6500,
         level: 'Advanced',
         slots: [
           { batchTiming: 'Private Masterclasses (Flexible)', availableSeats: 3, totalSeats: 5 }
@@ -78,6 +81,7 @@ const seedData = async () => {
         title: 'Nattuvangam & Rhythm Mastery',
         category: 'Nattuvangam & Rhythm',
         description: 'Mastery of Cymbals (Talam), Solkattu recite training, Jathi structure composition, and orchestra direction for live dance performances.',
+        image: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&q=80&w=800',
         duration: '6 Months',
         schedule: 'Fri & Sat (06:00 PM - 07:30 PM)',
         fee: 5000,
@@ -115,7 +119,7 @@ const seedData = async () => {
       }
     ]);
 
-    console.log('✅ Admin User & All Courses (including Nattuvangam) Seeded Successfully!');
+    console.log('✅ Admin User & Complete Academy Courses (Images, Fees & Duration) Seeded Successfully!');
     process.exit(0);
   } catch (error) {
     console.error('❌ Error Seeding Data:', error.message);
