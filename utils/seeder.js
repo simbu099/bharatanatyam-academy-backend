@@ -16,7 +16,7 @@ const seedData = async () => {
       console.log('MongoDB Connected for Seeding...');
     }
 
-    // Clear existing data to avoid duplicates
+    // Clear existing collections
     await User.deleteMany({ role: 'admin' });
     await Course.deleteMany({});
     await Review.deleteMany({});
@@ -36,13 +36,14 @@ const seedData = async () => {
       avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=400',
     });
 
-    // 2. Seed Courses with Active Slots
+    // 2. Seed Courses with Schedule & Active Slots
     await Course.insertMany([
       {
         title: 'Prarambhik (Beginner Level)',
         category: 'Prarambhik (Beginner)',
         description: 'Introduction to basic Adavus, Talam structures, and fundamental body postures in Kalakshetra Bani.',
         duration: '12 Months',
+        schedule: 'Mon & Wed (07:00 AM - 08:30 AM)', // Added required schedule field
         fee: 3500,
         level: 'Beginner',
         slots: [
@@ -55,6 +56,7 @@ const seedData = async () => {
         category: 'Madhyama (Intermediate)',
         description: 'Focus on Varnam items, intricate Jathis, footwork precision, and basic Abhinaya (expression).',
         duration: '24 Months',
+        schedule: 'Tue & Thu (05:30 PM - 07:00 PM)', // Added required schedule field
         fee: 4500,
         level: 'Intermediate',
         slots: [
@@ -66,6 +68,7 @@ const seedData = async () => {
         category: 'Uttama (Advanced)',
         description: 'Full Margam repertoire preparation, solo Arangetram choreography, and live orchestra alignment.',
         duration: '36 Months',
+        schedule: 'Flexible Private Sessions', // Added required schedule field
         fee: 6000,
         level: 'Advanced',
         slots: [
