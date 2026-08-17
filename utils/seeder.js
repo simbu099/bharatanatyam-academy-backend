@@ -10,7 +10,6 @@ dotenv.config();
 
 const seedData = async () => {
   try {
-    // Database connection check
     if (mongoose.connection.readyState === 0) {
       await mongoose.connect(process.env.MONGO_URI);
       console.log('MongoDB Connected for Seeding...');
@@ -36,14 +35,14 @@ const seedData = async () => {
       avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=400',
     });
 
-    // 2. Seed Courses with Schedule & Active Slots
+    // 2. Seed All Courses (Including Nattuvangam & Rhythm)
     await Course.insertMany([
       {
         title: 'Prarambhik (Beginner Level)',
         category: 'Prarambhik (Beginner)',
         description: 'Introduction to basic Adavus, Talam structures, and fundamental body postures in Kalakshetra Bani.',
         duration: '12 Months',
-        schedule: 'Mon & Wed (07:00 AM - 08:30 AM)', // Added required schedule field
+        schedule: 'Mon & Wed (07:00 AM - 08:30 AM)',
         fee: 3500,
         level: 'Beginner',
         slots: [
@@ -56,7 +55,7 @@ const seedData = async () => {
         category: 'Madhyama (Intermediate)',
         description: 'Focus on Varnam items, intricate Jathis, footwork precision, and basic Abhinaya (expression).',
         duration: '24 Months',
-        schedule: 'Tue & Thu (05:30 PM - 07:00 PM)', // Added required schedule field
+        schedule: 'Tue & Thu (05:30 PM - 07:00 PM)',
         fee: 4500,
         level: 'Intermediate',
         slots: [
@@ -68,11 +67,23 @@ const seedData = async () => {
         category: 'Uttama (Advanced)',
         description: 'Full Margam repertoire preparation, solo Arangetram choreography, and live orchestra alignment.',
         duration: '36 Months',
-        schedule: 'Flexible Private Sessions', // Added required schedule field
+        schedule: 'Flexible Private Sessions',
         fee: 6000,
         level: 'Advanced',
         slots: [
           { batchTiming: 'Private Masterclasses (Flexible)', availableSeats: 3, totalSeats: 5 }
+        ]
+      },
+      {
+        title: 'Nattuvangam & Rhythm Mastery',
+        category: 'Nattuvangam & Rhythm',
+        description: 'Mastery of Cymbals (Talam), Solkattu recite training, Jathi structure composition, and orchestra direction for live dance performances.',
+        duration: '6 Months',
+        schedule: 'Fri & Sat (06:00 PM - 07:30 PM)',
+        fee: 5000,
+        level: 'Intermediate/Advanced',
+        slots: [
+          { batchTiming: 'Fri & Sat (06:00 PM - 07:30 PM)', availableSeats: 6, totalSeats: 10 }
         ]
       }
     ]);
@@ -104,8 +115,7 @@ const seedData = async () => {
       }
     ]);
 
-    console.log('✅ Admin User & Complete Academy Data Seeded Successfully!');
-    console.log('📧 Admin Email:', adminUser.email);
+    console.log('✅ Admin User & All Courses (including Nattuvangam) Seeded Successfully!');
     process.exit(0);
   } catch (error) {
     console.error('❌ Error Seeding Data:', error.message);
