@@ -1,20 +1,20 @@
-const express = require('express');
+import express from 'express';
+import {
+  createBooking,
+  getBookings,
+  updateBookingStatus,
+  deleteBooking,
+} from '../controllers/bookingController.js';
+import { protect, adminOnly } from '../middleware/authMiddleware.js';
+
 const router = express.Router();
-const {
-  getSlots,
-  createSlot,
-  applyForCourse,
-  getApplications,
-  updateApplicationStatus,
-} = require('../controllers/bookingController');
-const { protect, adminOnly } = require('../middleware/authMiddleware');
 
-router.get('/slots', getSlots);
-router.post('/slots', protect, adminOnly, createSlot);
+router.route('/')
+  .post(createBooking)
+  .get(protect, adminOnly, getBookings);
 
-router.post('/apply', applyForCourse);
+router.route('/:id')
+  .put(protect, adminOnly, updateBookingStatus)
+  .delete(protect, adminOnly, deleteBooking);
 
-router.get('/applications', protect, adminOnly, getApplications);
-router.patch('/applications/:id/status', protect, adminOnly, updateApplicationStatus);
-
-module.exports = router;
+export default router;

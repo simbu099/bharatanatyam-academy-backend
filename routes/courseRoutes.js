@@ -1,15 +1,20 @@
-const express = require('express');
-const router = express.Router();
-const {
+import express from 'express';
+import {
   getCourses,
-  getCourseById,
   createCourse,
   updateCourse,
   deleteCourse,
-} = require('../controllers/courseController');
-const { protect, adminOnly } = require('../middleware/authMiddleware');
+} from '../controllers/courseController.js';
+import { protect, adminOnly } from '../middleware/authMiddleware.js';
 
-router.route('/').get(getCourses).post(protect, adminOnly, createCourse);
-router.route('/:id').get(getCourseById).put(protect, adminOnly, updateCourse).delete(protect, adminOnly, deleteCourse);
+const router = express.Router();
 
-module.exports = router;
+router.route('/')
+  .get(getCourses)
+  .post(protect, adminOnly, createCourse);
+
+router.route('/:id')
+  .put(protect, adminOnly, updateCourse)
+  .delete(protect, adminOnly, deleteCourse);
+
+export default router;

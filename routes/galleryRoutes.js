@@ -1,13 +1,18 @@
-const express = require('express');
+import express from 'express';
+import {
+  getGalleryImages,
+  addGalleryImage,
+  deleteGalleryImage,
+} from '../controllers/galleryController.js';
+import { protect, adminOnly } from '../middleware/authMiddleware.js';
+
 const router = express.Router();
-const {
-  getGalleryItems,
-  createGalleryItem,
-  deleteGalleryItem,
-} = require('../controllers/galleryController');
-const { protect, adminOnly } = require('../middleware/authMiddleware');
 
-router.route('/').get(getGalleryItems).post(protect, adminOnly, createGalleryItem);
-router.delete('/:id', protect, adminOnly, deleteGalleryItem);
+router.route('/')
+  .get(getGalleryImages)
+  .post(protect, adminOnly, addGalleryImage);
 
-module.exports = router;
+router.route('/:id')
+  .delete(protect, adminOnly, deleteGalleryImage);
+
+export default router;

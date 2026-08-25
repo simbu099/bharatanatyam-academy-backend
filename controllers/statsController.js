@@ -1,53 +1,28 @@
-const Course = require('../models/Course');
-const Application = require('../models/Application');
-const PerformanceRequest = require('../models/PerformanceRequest');
-const Review = require('../models/Review');
-const Slot = require('../models/Slot');
+import Course from '../models/Course.js';
+import Booking from '../models/Booking.js';
+import PerformanceRequest from '../models/PerformanceRequest.js';
+import Review from '../models/Review.js';
 
-// @desc    Get Admin Dashboard Summary Analytics
-// @route   GET /api/stats/dashboard
+// @desc    Get dashboard statistics for admin
+// @route   GET /api/stats
 // @access  Private/Admin
-const getDashboardStats = async (req, res) => {
+export const getDashboardStats = async (req, res) => {
   try {
     const totalCourses = await Course.countDocuments();
-    const totalApplications = await Application.countDocuments();
-    const pendingApplications = await Application.countDocuments({ status: 'pending' });
-    const approvedApplications = await Application.countDocuments({ status: 'approved' });
+    const totalBookings = await Booking.countDocuments();
     const totalPerformanceRequests = await PerformanceRequest.countDocuments();
-    const pendingPerformanceRequests = await PerformanceRequest.countDocuments({ status: 'pending' });
     const totalReviews = await Review.countDocuments();
-    const pendingReviews = await Review.countDocuments({ isApproved: false });
 
-    // Recent applications
-    const recentApplications = await Application.find()
-      .populate('course', 'title')
-      .populate('slot', 'days startTime endTime')
-      .sort({ createdAt: -1 })
-      .limit(5);
-
-    // Recent performance requests
-    const recentPerformanceRequests = await PerformanceRequest.find()
-      .sort({ createdAt: -1 })
-      .limit(5);
-
-    res.json({
+    res.status(200).json({
       success: true,
       data: {
-        totalCourses,
-        totalApplications,
-        pendingApplications,
-        approvedApplications,
-        totalPerformanceRequests,
-        pendingPerformanceRequests,
-        totalReviews,
-        pendingReviews,
-        recentApplications,
-        recentPerformanceRequests,
+        courses: totalCourses,
+        bookings: totalBookings,
+        performanceRequests: totalPerformanceRequests,
+        reviews: totalReviews,
       },
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
-
-module.exports = { getDashboardStats };

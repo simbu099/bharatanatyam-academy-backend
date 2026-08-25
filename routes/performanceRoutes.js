@@ -1,13 +1,18 @@
-const express = require('express');
-const router = express.Router();
-const {
+import express from 'express';
+import {
   createPerformanceRequest,
   getPerformanceRequests,
-  updatePerformanceRequestStatus,
-} = require('../controllers/performanceController');
-const { protect, adminOnly } = require('../middleware/authMiddleware');
+  deletePerformanceRequest,
+} from '../controllers/performanceController.js';
+import { protect, adminOnly } from '../middleware/authMiddleware.js';
 
-router.route('/').post(createPerformanceRequest).get(protect, adminOnly, getPerformanceRequests);
-router.patch('/:id/status', protect, adminOnly, updatePerformanceRequestStatus);
+const router = express.Router();
 
-module.exports = router;
+router.route('/')
+  .post(createPerformanceRequest)
+  .get(protect, adminOnly, getPerformanceRequests);
+
+router.route('/:id')
+  .delete(protect, adminOnly, deletePerformanceRequest);
+
+export default router;

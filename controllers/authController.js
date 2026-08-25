@@ -1,6 +1,6 @@
-const User = require('../models/User');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
+import User from '../models/User.js';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 
 // Token Generator Helper
 const generateToken = (id) => {
@@ -14,7 +14,7 @@ const generateToken = (id) => {
 // @desc    Register a new user / admin
 // @route   POST /api/auth/register
 // @access  Public
-const registerUser = async (req, res) => {
+export const registerUser = async (req, res) => {
   try {
     const { username, name, email, password, phone, role } = req.body;
 
@@ -64,7 +64,7 @@ const registerUser = async (req, res) => {
 // @desc    Authenticate user & get token
 // @route   POST /api/auth/login
 // @access  Public
-const loginUser = async (req, res) => {
+export const loginUser = async (req, res) => {
   try {
     const { email, username, password } = req.body;
 
@@ -114,17 +114,11 @@ const loginUser = async (req, res) => {
 // @desc    Get current user profile
 // @route   GET /api/auth/me
 // @access  Private
-const getMe = async (req, res) => {
+export const getMe = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select('-password');
     res.json({ success: true, data: user });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
-};
-
-module.exports = {
-  registerUser,
-  loginUser,
-  getMe,
 };

@@ -1,51 +1,33 @@
-const Course = require('../models/Course');
-const Slot = require('../models/Slot');
+import Course from '../models/Course.js';
 
-// @desc    Get all published courses (or all courses for admin)
+// @desc    Get all active courses (or all courses if requested)
 // @route   GET /api/courses
 // @access  Public
-const getCourses = async (req, res) => {
+export const getCourses = async (req, res) => {
   try {
-    const filter = req.query.all === 'true' ? {} : { isPublished: true };
-    const courses = await Course.find(filter).sort({ createdAt: -1 });
+    const filter = req.query.all === 'true' ? {} : { isActive: true };
+    let courses = await Course.find(filter);
 
-    // Fetch active slots for each course
-    const coursesWithSlots = await Promise.all(
-      courses.map(async (course) => {
-        const slots = await Slot.find({ course: course._id, isActive: true });
-        return {
-          ...course.toObject(),
-          slots,
-        };
-      })
-    );
-
-    res.json({ success: true, count: coursesWithSlots.length, data: coursesWithSlots });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-// @desc    Get single course with details and available slots
-// @route   GET /api/courses/:id
-// @access  Public
-const getCourseById = async (req, res) => {
-  try {
-    const course = await Course.findById(req.params.id);
-    if (!course) {
-      return res.status(404).json({ success: false, message: 'Course not found' });
+    // DB காலியாக இருந்தால் Default Courses உருவாக்கும்
+    if (courses.length === 0) {
+      const defaultCourses = [
+        { title: 'Bharatanatyam Foundation (Prarambhik)', level: 'Beginner', duration: '6 Months', fee: 3000, isActive: true },
+        { title: 'Intermediate Nattuvangam & Nritta', level: 'Intermediate', duration: '1 Year', fee: 5000, isActive: true },
+        { title: 'Advanced Abhinaya & Margam Showcase', level: 'Advanced', duration: '2 Years', fee: 8000, isActive: true }
+      ];
+      courses = await Course.insertMany(defaultCourses);
     }
-    const slots = await Slot.find({ course: course._id, isActive: true });
-    res.json({ success: true, data: { ...course.toObject(), slots } });
+
+    res.status(200).json({ success: true, count: courses.length, data: courses });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// @desc    Create a new course
+// @desc    Create new course
 // @route   POST /api/courses
 // @access  Private/Admin
-const createCourse = async (req, res) => {
+export const createCourse = async (req, res) => {
   try {
     const course = await Course.create(req.body);
     res.status(201).json({ success: true, data: course });
@@ -54,10 +36,10 @@ const createCourse = async (req, res) => {
   }
 };
 
-// @desc    Update a course
+// @desc    Update course
 // @route   PUT /api/courses/:id
 // @access  Private/Admin
-const updateCourse = async (req, res) => {
+export const updateCourse = async (req, res) => {
   try {
     const course = await Course.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
@@ -66,33 +48,23 @@ const updateCourse = async (req, res) => {
     if (!course) {
       return res.status(404).json({ success: false, message: 'Course not found' });
     }
-    res.json({ success: true, data: course });
+    res.status(200).json({ success: true, data: course });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
   }
 };
 
-// @desc    Delete a course
+// @desc    Delete course
 // @route   DELETE /api/courses/:id
 // @access  Private/Admin
-const deleteCourse = async (req, res) => {
+export const deleteCourse = async (req, res) => {
   try {
-    const course = await Course.findById(req.params.id);
+    const course = await Course.findByIdAndDelete(req.params.id);
     if (!course) {
       return res.status(404).json({ success: false, message: 'Course not found' });
     }
-    await course.deleteOne();
-    await Slot.deleteMany({ course: req.params.id });
-    res.json({ success: true, message: 'Course and associated slots deleted successfully' });
+    res.status(200).json({ success: true, message: 'Course deleted' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
-};
-
-module.exports = {
-  getCourses,
-  getCourseById,
-  createCourse,
-  updateCourse,
-  deleteCourse,
 };

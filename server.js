@@ -1,60 +1,64 @@
-const express = require('express');
-const cors = require('cors');
-const dotenv = require('dotenv');
-const path = require('path');
+import express from 'express';
+import dotenv from 'dotenv';
+import cors from 'cors';
+import connectDB from './config/db.js';
+import User from './models/User.js';
 
-// 1. Load env vars with explicit path
-dotenv.config({ path: path.join(__dirname, '.env') });
+// Route Imports
+import courseRoutes from './routes/courseRoutes.js';
+import bookingRoutes from './routes/bookingRoutes.js';
+import performanceRoutes from './routes/performanceRoutes.js';
+import galleryRoutes from './routes/galleryRoutes.js';
+import statsRoutes from './routes/statsRoutes.js';
+import authRoutes from './routes/authRoutes.js';
 
-// 2. Connect Database
-const connectDB = require('./config/db');
-connectDB();
-
-const errorHandler = require('./middleware/errorHandler');
-
+dotenv.config();
 const app = express();
 
-// Body Parser & CORS
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-app.use(
-  cors({
-    origin: '*',
-    credentials: true,
-  })
-);
-
-// Health Check API
-app.get('/api/health', (req, res) => {
-  res.json({
-    status: 'ONLINE',
-    system: 'Natya Bharati Academy API',
-    timestamp: new Date().toISOString(),
-  });
-});
+app.use(cors({
+  origin: [process.env.CLIENT_URL, 'http://localhost:5173', 'http://localhost:3000'],
+  credentials: true
+}));
+app.use(express.json());
 
 // API Routes
-app.use('/api/auth', require('./routes/authRoutes'));
-app.use('/api/courses', require('./routes/courseRoutes'));
-app.use('/api/bookings', require('./routes/bookingRoutes'));
-app.use('/api/performance-requests', require('./routes/performanceRoutes'));
-app.use('/api/reviews', require('./routes/reviewRoutes'));
-app.use('/api/gallery', require('./routes/galleryRoutes'));
-app.use('/api/stats', require('./routes/statsRoutes'));
+app.use('/api/courses', courseRoutes);
+app.use('/api/bookings', bookingRoutes);
+app.use('/api/performance', performanceRoutes);
+app.use('/api/gallery', galleryRoutes);
+app.use('/api/stats', statsRoutes);
+app.use('/api/auth', authRoutes);
 
-// 404 Route Handler
-app.use('*', (req, res) => {
-  res.status(404).json({ success: false, message: `Route ${req.originalUrl} not found` });
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'OK', message: 'Backend is healthy' });
 });
 
-// Error Handling Middleware
-app.use(errorHandler);
+// Seed Initial Admin User
+const seedAdmin = async () => {
+  try {
+    const adminExists = await User.findOne({ role: 'admin' });
+    if (!adminExists) {
+      const adminEmail = process.env.ADMIN_EMAIL || 'gsilambarasan54@gmail.com';
+      const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
+      
+      await User.create({
+        name: 'Academy Admin',
+        email: adminEmail,
+        password: adminPassword,
+        role: 'admin'
+      });
+      console.log(`👑 Default Admin Created: ${adminEmail} / ${adminPassword}`);
+    }
+  } catch (err) {
+    console.error('Error seeding admin user:', err.message);
+  }
+};
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
-  console.log(`🎭 Natya Bharati Academy Backend API Running on http://localhost:${PORT}`);
-  console.log(`📡 Health Check: http://localhost:${PORT}/api/health`);
+connectDB().then(() => {
+  seedAdmin();
+  app.listen(PORT, () => {
+    console.log(`🎭 Natya Bharati Academy Backend API Running on http://localhost:${PORT}`);
+  });
 });
-
-module.exports = app;

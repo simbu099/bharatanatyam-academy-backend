@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const performanceRequestSchema = new mongoose.Schema(
   {
@@ -59,4 +59,6 @@ const performanceRequestSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model('PerformanceRequest', performanceRequestSchema);
+const PerformanceRequest = mongoose.models.PerformanceRequest || mongoose.model('PerformanceRequest', performanceRequestSchema);
+
+export default PerformanceRequest;

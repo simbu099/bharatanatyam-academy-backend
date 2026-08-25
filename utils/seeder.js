@@ -1,15 +1,25 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
 import User from '../models/User.js';
 import Course from '../models/Course.js';
 import Review from '../models/Review.js';
 import Gallery from '../models/Gallery.js';
 
-dotenv.config();
+// Resolve __dirname in ES Modules and explicitly point to backend/.env file
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 const seedData = async () => {
   try {
+    if (!process.env.MONGO_URI) {
+      throw new Error("MONGO_URI is missing from .env file! Please check backend/.env file location.");
+    }
+
     if (mongoose.connection.readyState === 0) {
       await mongoose.connect(process.env.MONGO_URI);
       console.log('MongoDB Connected for Seeding...');
@@ -25,7 +35,7 @@ const seedData = async () => {
     const salt = await bcrypt.genSalt(10);
     const adminPasswordHash = await bcrypt.hash('Admin@12345', salt);
 
-    const adminUser = await User.create({
+    await User.create({
       username: 'admin',
       name: 'Guru Smt. Rukmini Viswanathan',
       email: 'gsilambarasan54@gmail.com',
@@ -35,7 +45,7 @@ const seedData = async () => {
       avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=400',
     });
 
-    // 2. Seed All Courses with HD Images, Fees, Duration & Slots
+    // 2. Seed All Courses
     await Course.insertMany([
       {
         title: 'Prarambhik (Beginner Level)',
@@ -46,10 +56,7 @@ const seedData = async () => {
         schedule: 'Mon & Wed (07:00 AM - 08:30 AM)',
         fee: 3500,
         level: 'Beginner',
-        slots: [
-          { batchTiming: 'Mon & Wed (07:00 AM - 08:30 AM)', availableSeats: 10, totalSeats: 15 },
-          { batchTiming: 'Sat & Sun (09:00 AM - 11:00 AM)', availableSeats: 5, totalSeats: 15 }
-        ]
+        slotsAvailable: 10
       },
       {
         title: 'Madhyama (Intermediate Level)',
@@ -60,9 +67,7 @@ const seedData = async () => {
         schedule: 'Tue & Thu (05:30 PM - 07:00 PM)',
         fee: 4500,
         level: 'Intermediate',
-        slots: [
-          { batchTiming: 'Tue & Thu (05:30 PM - 07:00 PM)', availableSeats: 8, totalSeats: 12 }
-        ]
+        slotsAvailable: 8
       },
       {
         title: 'Uttama (Advanced Arangetram Track)',
@@ -73,9 +78,7 @@ const seedData = async () => {
         schedule: 'Flexible Private Sessions',
         fee: 6500,
         level: 'Advanced',
-        slots: [
-          { batchTiming: 'Private Masterclasses (Flexible)', availableSeats: 3, totalSeats: 5 }
-        ]
+        slotsAvailable: 3
       },
       {
         title: 'Nattuvangam & Rhythm Mastery',
@@ -86,9 +89,7 @@ const seedData = async () => {
         schedule: 'Fri & Sat (06:00 PM - 07:30 PM)',
         fee: 5000,
         level: 'Intermediate/Advanced',
-        slots: [
-          { batchTiming: 'Fri & Sat (06:00 PM - 07:30 PM)', availableSeats: 6, totalSeats: 10 }
-        ]
+        slotsAvailable: 6
       }
     ]);
 
@@ -115,11 +116,12 @@ const seedData = async () => {
         role: 'Senior Disciple',
         comment: 'Learning under Guru Smt. Rukmini Viswanathan has transformed my understanding of Abhinaya and footwork precision.',
         rating: 5,
-        approved: true
+        isApproved: true
       }
     ]);
 
-    console.log('✅ Admin User & Complete Academy Courses (Images, Fees & Duration) Seeded Successfully!');
+    console.log('✅ MongoDB Connected for Seeding...');
+    console.log('✅ Admin User, Courses, Gallery & Reviews Seeded Successfully!');
     process.exit(0);
   } catch (error) {
     console.error('❌ Error Seeding Data:', error.message);
