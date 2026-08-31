@@ -34,8 +34,7 @@ const __dirname = path.dirname(__filename);
 // 1. Load env vars
 dotenv.config({ path: path.join(__dirname, '.env') });
 
-// Fail fast if critical secrets are missing rather than silently falling
-// back to an insecure default.
+// Fail fast if critical secrets are missing
 const REQUIRED_ENV_VARS = ['MONGO_URI', 'JWT_SECRET'];
 const missingEnvVars = REQUIRED_ENV_VARS.filter((key) => !process.env[key]);
 if (missingEnvVars.length > 0) {
@@ -46,24 +45,59 @@ if (missingEnvVars.length > 0) {
 
 const app = express();
 
-// Trust the first proxy hop (needed for correct client IPs behind
-// platforms like Render/Vercel/Heroku when using rate limiting).
+// Trust proxy for Render/Vercel rate-limiting
 app.set('trust proxy', 1);
 
-// 2. Security & Parsing Middlewares
-app.use(helmet());
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-app.use(mongoSanitize()); // Strips $/. operators from user input (NoSQL injection defense)
-app.use('/api', apiLimiter);
-
-// CORS Policy
+// 2. Helmet Configuration (Configured for Cross-Origin requests)
 app.use(
-  cors({
-    origin: [process.env.CLIENT_URL, 'http://localhost:5173', 'http://localhost:3000'].filter(Boolean),
-    credentials: true,
+  helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+    crossOriginEmbedderPolicy: false,
   })
 );
+
+// Dynamic Allowed Origins for CORS
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+  'https://bharatanatyam-academy-frontend.vercel.app',
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://localhost:5000',
+].filter(Boolean);
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps, curl, or server-to-server)
+    if (!origin) return callback(null, true);
+    
+    // Check exact matches or subdomains on vercel.app
+    const isAllowed =
+      allowedOrigins.includes(origin) ||
+      origin.endsWith('.vercel.app');
+
+    if (isAllowed) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS Error: Origin ${origin} is not allowed`));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+  optionsSuccessStatus: 200,
+};
+
+// Apply CORS & Handle Preflight (OPTIONS) requests explicitly
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
+
+// Parsing Middlewares
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(mongoSanitize()); // Strips $/. operators (NoSQL injection defense)
+
+// Apply Rate Limiter to API routes
+app.use('/api', apiLimiter);
 
 // Health Check API
 app.get('/api/health', (req, res) => {
@@ -89,8 +123,7 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/audit-logs', auditLogRoutes);
 app.use('/api/content', contentRoutes);
 
-// 4. Seed Initial Admin User (only ever runs if no admin exists yet; the
-// password must be set explicitly via ADMIN_PASSWORD, never guessable).
+// 4. Seed Initial Admin User
 const seedAdmin = async () => {
   try {
     const adminEmail = process.env.ADMIN_EMAIL;
@@ -106,7 +139,7 @@ const seedAdmin = async () => {
       await User.create({
         username: 'admin',
         email: adminEmail,
-        password: adminPassword, // hashed by the pre-save flow in seeder / bcrypt below
+        password: adminPassword,
         role: 'admin',
       });
       console.log(`👑 Default Admin Created: ${adminEmail}`);
