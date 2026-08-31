@@ -11,24 +11,26 @@ const bookingSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Email is required'],
       lowercase: true,
+      trim: true,
     },
     phone: {
       type: String,
       required: [true, 'Phone number is required'],
+      trim: true,
     },
     course: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Course',
-      required: true,
+      required: [true, 'Course selection is required'],
     },
     slot: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Slot',
-      required: false, // Optional if slot is not selected immediately
+      default: null,
     },
     age: {
       type: Number,
-      required: true,
+      required: [true, 'Age is required'],
     },
     notes: {
       type: String,
@@ -43,6 +45,7 @@ const bookingSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Reuse existing model instance if available
 const Booking = mongoose.models.Booking || mongoose.model('Booking', bookingSchema);
 
 export default Booking;

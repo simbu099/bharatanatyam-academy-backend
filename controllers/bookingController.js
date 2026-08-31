@@ -9,14 +9,21 @@ export const createBooking = async (req, res) => {
   try {
     const { studentName, email, phone, courseId, slotId, age, notes } = req.body;
 
+    if (!studentName || !email || !phone || !courseId || !age) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Please provide all required fields (studentName, email, phone, courseId, age)' 
+      });
+    }
+
     const newBooking = await Booking.create({
       studentName,
       email,
       phone,
       course: courseId,
-      slot: slotId,
+      slot: slotId || null,
       age,
-      notes,
+      notes: notes || '',
     });
 
     let slot = null;
@@ -28,7 +35,7 @@ export const createBooking = async (req, res) => {
       }
     }
 
-    // Send Mail Trigger
+    // Send Mail Notification Trigger (Failsafe)
     try {
       await sendBookingConfirmation({ studentName, email, phone, age, notes }, null, slot);
     } catch (mailError) {
@@ -50,7 +57,11 @@ export const createBooking = async (req, res) => {
 // @access  Private/Admin
 export const getBookings = async (req, res) => {
   try {
-    const bookings = await Booking.find().populate('course').populate('slot').sort({ createdAt: -1 });
+    const bookings = await Booking.find()
+      .populate('course')
+      .populate('slot')
+      .sort({ createdAt: -1 });
+
     res.status(200).json({ success: true, count: bookings.length, data: bookings });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -63,11 +74,26 @@ export const getBookings = async (req, res) => {
 export const updateBookingStatus = async (req, res) => {
   try {
     const { status } = req.body;
-    const booking = await Booking.findByIdAndUpdate(req.params.id, { status }, { new: true });
+
+    if (!['Pending', 'Confirmed', 'Cancelled'].includes(status)) {
+      return res.status(400).json({ success: false, message: 'Invalid status value' });
+    }
+
+    const booking = await Booking.findByIdAndUpdate(
+      req.params.id, 
+      { status }, 
+      { new: true, runValidators: true }
+    );
+
     if (!booking) {
       return res.status(404).json({ success: false, message: 'Booking not found' });
     }
-    res.status(200).json({ success: true, data: booking });
+
+    res.status(200).json({ 
+      success: true, 
+      message: 'Booking status updated successfully', 
+      data: booking 
+    });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
   }
