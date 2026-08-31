@@ -37,31 +37,27 @@ export const getPerformanceRequests = async (req, res) => {
   }
 };
 
-// @desc    Update performance request status
-// @route   PUT /api/performance/:id
+// @desc    Update a performance request's status
+// @route   PUT /api/performance-requests/:id
 // @access  Private/Admin
 export const updatePerformanceStatus = async (req, res) => {
   try {
     const { status } = req.body;
-    
-    // Status update query
-    const updatedRequest = await PerformanceRequest.findByIdAndUpdate(
+    const allowed = ['pending', 'contacted', 'confirmed', 'declined'];
+    if (!allowed.includes(status)) {
+      return res.status(400).json({ success: false, message: 'Invalid status value' });
+    }
+    const request = await PerformanceRequest.findByIdAndUpdate(
       req.params.id,
       { status },
       { new: true, runValidators: true }
     );
-
-    if (!updatedRequest) {
+    if (!request) {
       return res.status(404).json({ success: false, message: 'Request not found' });
     }
-
-    res.status(200).json({
-      success: true,
-      message: 'Performance request status updated successfully!',
-      data: updatedRequest,
-    });
+    res.status(200).json({ success: true, data: request });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(400).json({ success: false, message: error.message });
   }
 };
 

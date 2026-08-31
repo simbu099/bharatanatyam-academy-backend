@@ -1,30 +1,13 @@
-import Subscriber from '../models/Subscriber.js';
-import { sendEmail } from '../utils/emailService.js';
+import express from 'express';
+import { subscribeNewsletter, getSubscribers } from '../controllers/subscribeController.js';
+import { protect, adminOnly } from '../middleware/authMiddleware.js';
+import { subscribeValidation } from '../middleware/validators.js';
+import { formLimiter } from '../middleware/rateLimiters.js';
 
-export const subscribeNewsletter = async (req, res) => {
-  try {
-    const { email } = req.body;
-    if (!email) {
-      return res.status(400).json({ success: false, message: 'Email is required' });
-    }
+const router = express.Router();
 
-    // DB-ல் ஏற்கனவே உள்ளதா எனக் சோதிப்பது
-    const existing = await Subscriber.findOne({ email });
-    if (existing) {
-      return res.status(400).json({ success: false, message: 'Email already subscribed!' });
-    }
+router.route('/')
+  .post(formLimiter, subscribeValidation, subscribeNewsletter)
+  .get(protect, adminOnly, getSubscribers);
 
-    await Subscriber.create({ email });
-
-    // Welcome Email sending via Nodemailer
-    await sendEmail({
-      to: email,
-      subject: 'Welcome to Jothi Classical Dancing Academy Newsletter',
-      html: `<h3>Namaste!</h3><p>Thank you for subscribing to our newsletter updates.</p>`
-    });
-
-    res.status(201).json({ success: true, message: 'Subscribed successfully!' });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+export default router;

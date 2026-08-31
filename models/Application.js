@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const applicationSchema = new mongoose.Schema(
   {
@@ -16,31 +16,35 @@ const applicationSchema = new mongoose.Schema(
     phone: {
       type: String,
       required: [true, 'Phone number is required'],
-    },
-    age: {
-      type: Number,
-      required: true,
-    },
-    experienceYears: {
-      type: Number,
-      default: 0,
+      trim: true,
     },
     course: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Course',
+      required: false,
+    },
+    courseName: {
+      type: String,
       required: true,
     },
-    slot: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Slot',
-      required: true,
+    selectedSlot: {
+      type: String,
+      default: 'General Batch',
+    },
+    age: {
+      type: Number,
+      required: false,
+    },
+    experienceYears: {
+      type: Number,
+      default: 0,
     },
     status: {
       type: String,
       enum: ['pending', 'approved', 'rejected', 'enrolled'],
       default: 'pending',
     },
-    specialNote: {
+    notes: {
       type: String,
       default: '',
     },
@@ -48,4 +52,7 @@ const applicationSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model('Application', applicationSchema);
+const Application =
+  mongoose.models.Application || mongoose.model('Application', applicationSchema);
+
+export default Application;

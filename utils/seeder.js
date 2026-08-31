@@ -1,5 +1,4 @@
 import mongoose from 'mongoose';
-import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -32,14 +31,17 @@ const seedData = async () => {
     await Gallery.deleteMany({});
 
     // 1. Seed Admin User & Guru Profile
-    const salt = await bcrypt.genSalt(10);
-    const adminPasswordHash = await bcrypt.hash('Admin@12345', salt);
+    // Password is intentionally NOT hashed here: the User model's
+    // pre-save hook hashes it automatically and exactly once.
+    if (!process.env.ADMIN_EMAIL || !process.env.ADMIN_PASSWORD) {
+      throw new Error('Set ADMIN_EMAIL and ADMIN_PASSWORD in backend/.env before seeding.');
+    }
 
     await User.create({
       username: 'admin',
-      name: 'Guru Smt. Rukmini Viswanathan',
-      email: 'gsilambarasan54@gmail.com',
-      password: adminPasswordHash,
+      name: 'Jothi',
+      email: process.env.ADMIN_EMAIL,
+      password: process.env.ADMIN_PASSWORD,
       role: 'admin',
       phone: '+91 98400 12345',
       avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=400',
@@ -114,7 +116,7 @@ const seedData = async () => {
       {
         name: 'Ananya Krishnan',
         role: 'Senior Disciple',
-        comment: 'Learning under Guru Smt. Rukmini Viswanathan has transformed my understanding of Abhinaya and footwork precision.',
+        comment: 'Learning under Guru Jothi has transformed my understanding of Abhinaya and footwork precision.',
         rating: 5,
         isApproved: true
       }

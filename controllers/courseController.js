@@ -1,4 +1,5 @@
 import Course from '../models/Course.js';
+import { logAudit } from '../utils/auditLog.js';
 
 // @desc    Get all active courses (or all courses if requested)
 // @route   GET /api/courses
@@ -6,18 +7,26 @@ import Course from '../models/Course.js';
 export const getCourses = async (req, res) => {
   try {
     const filter = req.query.all === 'true' ? {} : { isActive: true };
-    let courses = await Course.find(filter);
+    const courses = await Course.find(filter).sort({ createdAt: 1 });
 
-    // DB காலியாக இருந்தால் Default Courses உருவாக்கும்
-    if (courses.length === 0) {
-      const defaultCourses = [
-        { title: 'Bharatanatyam Foundation (Prarambhik)', level: 'Beginner', duration: '6 Months', fee: 3000, isActive: true },
-        { title: 'Intermediate Nattuvangam & Nritta', level: 'Intermediate', duration: '1 Year', fee: 5000, isActive: true },
-        { title: 'Advanced Abhinaya & Margam Showcase', level: 'Advanced', duration: '2 Years', fee: 8000, isActive: true }
-      ];
-      courses = await Course.insertMany(defaultCourses);
-    }
+    // Note: if no courses exist yet, run `npm run seed` in the backend to
+    // populate real course data instead of silently inserting placeholder
+    // documents that don't match the required schema fields.
+    res.status(200).json({ success: true, count: courses.length, data: courses });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
 
+// @desc    Get courses relevant to the logged-in staff member.
+//          Admins see every course; teachers see only courses assigned
+//          to them.
+// @route   GET /api/courses/my
+// @access  Private (admin, teacher)
+export const getMyCourses = async (req, res) => {
+  try {
+    const filter = req.user.role === 'admin' ? {} : { teacher: req.user._id };
+    const courses = await Course.find(filter).populate('teacher', 'name username email').sort({ createdAt: -1 });
     res.status(200).json({ success: true, count: courses.length, data: courses });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -63,6 +72,7 @@ export const deleteCourse = async (req, res) => {
     if (!course) {
       return res.status(404).json({ success: false, message: 'Course not found' });
     }
+    await logAudit(req, 'course.delete', `Deleted course "${course.title}"`);
     res.status(200).json({ success: true, message: 'Course deleted' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

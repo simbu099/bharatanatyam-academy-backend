@@ -1,5 +1,6 @@
 import Course from '../models/Course.js';
 import Booking from '../models/Booking.js';
+import Application from '../models/Application.js';
 import PerformanceRequest from '../models/PerformanceRequest.js';
 import Review from '../models/Review.js';
 
@@ -8,18 +9,37 @@ import Review from '../models/Review.js';
 // @access  Private/Admin
 export const getDashboardStats = async (req, res) => {
   try {
-    const totalCourses = await Course.countDocuments();
-    const totalBookings = await Booking.countDocuments();
-    const totalPerformanceRequests = await PerformanceRequest.countDocuments();
-    const totalReviews = await Review.countDocuments();
+    const [
+      totalCourses,
+      totalBookings,
+      pendingBookings,
+      totalApplications,
+      pendingApplications,
+      totalPerformanceRequests,
+      pendingPerformanceRequests,
+      totalReviews,
+    ] = await Promise.all([
+      Course.countDocuments(),
+      Booking.countDocuments(),
+      Booking.countDocuments({ status: 'Pending' }),
+      Application.countDocuments(),
+      Application.countDocuments({ status: 'pending' }),
+      PerformanceRequest.countDocuments(),
+      PerformanceRequest.countDocuments({ status: 'pending' }),
+      Review.countDocuments(),
+    ]);
 
     res.status(200).json({
       success: true,
       data: {
-        courses: totalCourses,
-        bookings: totalBookings,
-        performanceRequests: totalPerformanceRequests,
-        reviews: totalReviews,
+        totalCourses,
+        totalBookings,
+        pendingBookings,
+        totalApplications,
+        pendingApplications,
+        totalPerformanceRequests,
+        pendingPerformanceRequests,
+        totalReviews,
       },
     });
   } catch (error) {

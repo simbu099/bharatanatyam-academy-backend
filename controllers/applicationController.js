@@ -1,120 +1,127 @@
-import nodemailer from 'nodemailer';
+import Application from '../models/Application.js';
+import Course from '../models/Course.js';
+import { sendBookingConfirmation } from '../utils/emailService.js';
 
+// @desc    Submit a course application (save to DB, then email)
+// @route   POST /api/applications
+// @access  Public
 export const createApplication = async (req, res) => {
   try {
-    const { 
-      studentName, 
-      email, 
-      phone, 
-      courseId, 
-      courseName, 
-      selectedSlot, 
-      age, 
-      experience, 
-      notes 
-    } = req.body;
-
-    // 1. Basic Validation
-    if (!studentName || !email || !phone || !courseName) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please fill in all required fields (Name, Email, Phone, Course)',
-      });
-    }
-
-    const applicationData = {
+    const {
       studentName,
       email,
       phone,
       courseId,
       courseName,
+      selectedSlot,
+      age,
+      experience,
+      notes,
+    } = req.body;
+
+    const application = await Application.create({
+      studentName,
+      email,
+      phone,
+      course: courseId || undefined,
+      courseName,
       selectedSlot: selectedSlot || 'General Batch',
-      age: age || 'N/A',
-      experience: experience || '0',
-      notes: notes || 'None',
-    };
-
-    // 2. Nodemailer Transporter Config
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST || 'smtp.gmail.com',
-      port: Number(process.env.SMTP_PORT) || 465,
-      secure: Number(process.env.SMTP_PORT) === 465,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
+      age: age || undefined,
+      experienceYears: experience || 0,
+      notes: notes || '',
     });
 
-    // 3. Email Templates
-    // Mail 1: Student Confirmation Mail
-    const studentMailOptions = {
-      from: process.env.EMAIL_FROM || `"Jothi Academy" <${process.env.SMTP_USER}>`,
-      to: email,
-      subject: '🎉 Application & Slot Booking Confirmed - Jothi Classical Dancing Academy',
-      html: `
-        <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; max-width: 600px; border: 1px solid #eee; border-radius: 8px;">
-          <h2 style="color: #800000; margin-top: 0;">Dear ${studentName},</h2>
-          <p>Thank you for registering with <b>Jothi Classical Dancing Academy</b>! Your slot booking application has been successfully received.</p>
-          
-          <div style="background: #fff8f8; padding: 15px; border-left: 4px solid #800000; margin: 20px 0; border-radius: 4px;">
-            <h3 style="margin-top:0; color: #800000;">Booking Details:</h3>
-            <p style="margin: 5px 0;"><b>Course:</b> ${courseName}</p>
-            <p style="margin: 5px 0;"><b>Slot Timing:</b> ${applicationData.selectedSlot}</p>
-            <p style="margin: 5px 0;"><b>Contact Phone:</b> ${phone}</p>
-          </div>
+    // Email is best-effort: the application is already safely stored, so a
+    // failed email must never lose or block the submission.
+    try {
+      await sendBookingConfirmation(
+        { studentName, email, phone, age, notes, courseName, selectedSlot },
+        null,
+        null
+      );
+    } catch (mailError) {
+      console.error('Application email sending failed, but application was saved:', mailError.message);
+    }
 
-          <p>Our team will review your application and contact you shortly with further orientation details.</p>
-          <br/>
-          <p style="margin-bottom: 0;">Warm Regards,<br/><b>Guru & Administration Team</b><br/>Jothi Classical Dancing Academy</p>
-        </div>
-      `,
-    };
-
-    // Mail 2: Admin Notification Mail
-    const adminMailOptions = {
-      from: process.env.EMAIL_FROM || `"Jothi Academy Alert" <${process.env.SMTP_USER}>`,
-      to: process.env.SMTP_USER, // Receives on Admin Email (gsilambarasan54@gmail.com)
-      subject: `🚨 NEW SLOT BOOKING: ${studentName} - ${courseName}`,
-      html: `
-        <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; max-width: 600px; border: 1px solid #eee; border-radius: 8px;">
-          <h2 style="color: #800000; margin-top: 0;">New Admission / Slot Booking Alert!</h2>
-          <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
-            <tr><td style="padding: 8px; border: 1px solid #ddd; width: 35%;"><b>Student Name:</b></td><td style="padding: 8px; border: 1px solid #ddd;">${studentName}</td></tr>
-            <tr><td style="padding: 8px; border: 1px solid #ddd;"><b>Email:</b></td><td style="padding: 8px; border: 1px solid #ddd;">${email}</td></tr>
-            <tr><td style="padding: 8px; border: 1px solid #ddd;"><b>Phone:</b></td><td style="padding: 8px; border: 1px solid #ddd;">${phone}</td></tr>
-            <tr><td style="padding: 8px; border: 1px solid #ddd;"><b>Course:</b></td><td style="padding: 8px; border: 1px solid #ddd;">${courseName}</td></tr>
-            <tr><td style="padding: 8px; border: 1px solid #ddd;"><b>Slot Selected:</b></td><td style="padding: 8px; border: 1px solid #ddd;">${applicationData.selectedSlot}</td></tr>
-            <tr><td style="padding: 8px; border: 1px solid #ddd;"><b>Age / Prior Exp:</b></td><td style="padding: 8px; border: 1px solid #ddd;">${applicationData.age} Yrs / ${applicationData.experience} Yrs Exp</td></tr>
-            <tr><td style="padding: 8px; border: 1px solid #ddd;"><b>Special Notes:</b></td><td style="padding: 8px; border: 1px solid #ddd;">${applicationData.notes}</td></tr>
-          </table>
-        </div>
-      `,
-    };
-
-    // 4. Send Emails Asynchronously in Parallel for Maximum Performance
-    Promise.allSettled([
-      transporter.sendMail(studentMailOptions),
-      transporter.sendMail(adminMailOptions),
-    ]).then((results) => {
-      results.forEach((result, idx) => {
-        if (result.status === 'rejected') {
-          console.error(`Email ${idx === 0 ? 'Student' : 'Admin'} sending failed:`, result.reason);
-        }
-      });
-    });
-
-    // 5. Send Immediate Response back to Client
     return res.status(201).json({
       success: true,
-      message: 'Application submitted successfully and confirmation email sent!',
-      data: applicationData,
+      message: 'Application submitted successfully!',
+      data: application,
     });
-
   } catch (error) {
-    console.error('Create Application Error:', error);
-    return res.status(500).json({
+    console.error('Create Application Error:', error.message);
+    return res.status(400).json({
       success: false,
       message: error.message || 'Failed to submit application',
     });
+  }
+};
+
+// @desc    Get applications for students in courses assigned to the
+//          logged-in teacher (admins should use GET /api/applications
+//          instead, which returns everything).
+// @route   GET /api/applications/my
+// @access  Private (admin, teacher)
+export const getMyApplications = async (req, res) => {
+  try {
+    if (req.user.role === 'admin') {
+      const applications = await Application.find().populate('course').sort({ createdAt: -1 });
+      return res.status(200).json({ success: true, count: applications.length, data: applications });
+    }
+
+    const myCourseIds = await Course.find({ teacher: req.user._id }).distinct('_id');
+    const applications = await Application.find({ course: { $in: myCourseIds } })
+      .populate('course')
+      .sort({ createdAt: -1 });
+    res.status(200).json({ success: true, count: applications.length, data: applications });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Get all applications
+// @route   GET /api/applications
+// @access  Private/Admin
+export const getApplications = async (req, res) => {
+  try {
+    const applications = await Application.find().populate('course').sort({ createdAt: -1 });
+    res.status(200).json({ success: true, count: applications.length, data: applications });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Update an application's status
+// @route   PUT /api/applications/:id
+// @access  Private/Admin
+export const updateApplicationStatus = async (req, res) => {
+  try {
+    const { status } = req.body;
+    const application = await Application.findByIdAndUpdate(
+      req.params.id,
+      { status },
+      { new: true, runValidators: true }
+    );
+    if (!application) {
+      return res.status(404).json({ success: false, message: 'Application not found' });
+    }
+    res.status(200).json({ success: true, data: application });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Delete an application
+// @route   DELETE /api/applications/:id
+// @access  Private/Admin
+export const deleteApplication = async (req, res) => {
+  try {
+    const application = await Application.findByIdAndDelete(req.params.id);
+    if (!application) {
+      return res.status(404).json({ success: false, message: 'Application not found' });
+    }
+    res.status(200).json({ success: true, message: 'Application deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 };

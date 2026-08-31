@@ -83,7 +83,7 @@ export const sendBookingConfirmation = async (application, course, slot) => {
       text: `Namaste ${application.studentName}, your application has been received!`,
     }),
     sendEmail({
-      to: 'gsilambarasan54@gmail.com',
+      to: process.env.ADMIN_EMAIL,
       subject: adminSubject,
       html: adminHtml,
     })
@@ -122,7 +122,7 @@ export const sendPerformanceNotification = async (request) => {
 
   await Promise.allSettled([
     sendEmail({
-      to: 'gsilambarasan54@gmail.com',
+      to: process.env.ADMIN_EMAIL,
       subject,
       html,
       text: `New Performance Inquiry from ${request.organizerName}`,
